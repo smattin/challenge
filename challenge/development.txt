@@ -1,0 +1,27 @@
+Started out looking at the source of the top-level web page for jana.com.  Noted that there are triggers on scrolling to load up some content.  This implies some UI might be required to get at all the content.
+
+I did not have any experience with freely available web driving or crawling software, but had seen a lot of mention of selenium, so decided to give it a try.
+
+Discovered there is some bug in the Debian versions of selenium, where the default configurations give an error trying to find a browser 'profile'.  Wading through several forums related to produced a couple of reasonable, but not too feasible solutions, PhantomJS and running 'headless' on a remote machine.  Either of these might be a good solution, but involve more work not directly related to solving the coding challange.
+
+Decided to try running on my wife's old Windows 8 laptop, which I had been trying to upgrade to Windows 8.1 in preparation for Windows 10; 3 unsuccessful attempts, so far.  After installing a fresh Python 3, Git, and Selenium, managed to get it working with the Firefox WebDriver (Iceweasel).
+
+An initial prototype using selenium showed:
+
+1.  There is quite a bit of depth to the Jana web site, at least several hundred pages.
+
+2.  Selenium is pretty slow, at least with the machines and network available.
+
+3.  Just outputting 'PageDown' to scroll was not sufficient, since the focus seems to be initially in the address bar.  Since a quick perusal of the docs was not much help, decided to just throw a few tabs at it.  Experimentation showed about 12 are sufficient to traverse the top-level page.
+
+Since the 'easy' e-mail addresses are on one '/contact' page, I prototyped a single-page scanning for the 'mailto' links.  All that was left was the web crawling bit.
+
+Not.  Experiments on a different, smaller web site showed I needed to worry about some sorts of non-HTML pages that the browser would unhelpfully start popping modal dialogs for, concerning downloads, etc.  Decided I needed to at least take a look at the 'Content-Type' HTTP header and possibly the actual data returned to skip non-pertinent pages.
+
+Finally got disgusted with trying to use the HP laptop with no 'real' keyboard and a touch pad that randomly launched unwanted apps.  Decided to see if I could solve the browser 'profile' issue on Debian.  This turned out to not be too hard, if you hard-code the path to the '.mozilla' profile directory on disk.
+
+Since initial runs indicated some duplication of pages being examined, looked into URL normalization more closely.   In addition to URL parse/modify/unparse reduce duplication, looked at adding 'Etag' from HTTP headers to the set of 'done' page indicators.
+
+Some time was wasted in the creation of iterators for the 'scheduled' pages -links not yet examined.  At the end, the Python3 iterators just complained about the data being changed during iteration.  - I think there are some structures designed to handle this (heap?), but need some more research. - In the end, just popping random elements from a Python3 set seems sufficient.
+
+Although it is satisfying to be back on Debian, the implementation is even slower than the laptop, since my current "desktop" machine is a cute (and transparent) Raspberry Pi - with a 40" screen.  Getting some virtual machine installed there to allow running selenium 'headless' might be difficult.
