@@ -119,6 +119,19 @@ def is_html(content_type):
 def isdigit(c):
     return c in '0123456789'
 
+def smoke_test():
+            assert(test_domain('blog.jana.com','jana.com'))
+            assert(not(test_domain('foo.com','foo.company.net')))
+            contacts = Links(ui(hack),'http://jana.com/contact','jana.com')
+            log.debug(str(contacts))
+            assert('sales@jana.com' in contacts.mail)
+            for email in contacts.mail:
+                print(email)
+            contacts.scan.web.close()
+
+def get_links(page):
+    ret=set()
+
 if __name__ == '__main__':
 
     # FIXME: see readme.md
@@ -131,14 +144,7 @@ if __name__ == '__main__':
     if 1 < len(sys.argv):
         if '-t' == sys.argv[1]:
             log.setLevel(logging.DEBUG)
-            #pdb.set_trace()
-            assert(test_domain('blog.jana.com','jana.com'))
-            assert(not(test_domain('foo.com','foo.company.net')))
-            contacts = Links(ui(hack),'http://jana.com/contact','jana.com')
-            log.debug(str(contacts))
-            for email in contacts.mail:
-                print(email)
-            contacts.scan.web.close()
+            smoke_test()
             exit(0)
         elif '-v' == sys.argv[1]:
             log.setLevel(logging.INFO)
@@ -184,11 +190,3 @@ if __name__ == '__main__':
         #log.info('scheduled={}'.format(scheduled))
         #log.info('done={}'.format(done))
         log.info('{} emails={} found in {} pages of {}'.format(len(emails),emails,len([p for p in done if not(isdigit(p[0]))]),domain))
-        """
-        # pdb.set_trace()
-        try:
-            for l in ls:
-                log.info(l)
-        except:
-            log.error('{} is not iterable'.format(ls))
-        """
