@@ -50,6 +50,9 @@ def normalized(link):
     urlparts[5] = '' # fragment
     return urlunparse(urlparts)
 
+def test_domain(domain,desired):
+    return bool(not(desired) or re.search('[\.]'+desired+'$',domain))
+
 class Links:
     """ iterator for links on a web page """
     def __str__(self):
@@ -72,7 +75,7 @@ class Links:
             aas = self.scan.web.find_elements_by_xpath(aa)
             href = [normalized(a.get_attribute('href')) for a in aas]
             # links with domain
-            lsd = set([h for h in href if self.domain in h])
+            lsd = set([h for h in href if test_domain(urlparse(h).netloc,self.domain)])
             # relative links (or mailto)
             rls = set([h for h in href if 'http' not in h])
             self.mail = set([h[7:] for h in href if 'mailto' in h])
@@ -89,7 +92,7 @@ class Links:
              link = self.found.pop() # str = type(link)
              url = urlparse(normalized(link))
              scheme = str(url.scheme)
-             if 0 == len(scheme) or (re.match('http',scheme) and re.search(self.domain+'$',str(url.netloc))):
+             if 0 == len(scheme) or (re.match('http',scheme) and test_domain(str(url.netloc),self.domain)):
                  todo = urlunparse(url)
                  return todo
          raise StopIteration
@@ -128,6 +131,9 @@ if __name__ == '__main__':
     if 1 < len(sys.argv):
         if '-t' == sys.argv[1]:
             log.setLevel(logging.DEBUG)
+            #pdb.set_trace()
+            assert(test_domain('blog.jana.com','jana.com'))
+            assert(not(test_domain('foo.com','foo.company.net')))
             contacts = Links(ui(hack),'http://jana.com/contact','jana.com')
             log.debug(str(contacts))
             for email in contacts.mail:
