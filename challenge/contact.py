@@ -132,12 +132,8 @@ def smoke_test():
 def get_links(page):
     ret=set()
 
-if __name__ == '__main__':
-
-    # FIXME: see readme.md
-    hack = ''
-    if 'Linux' == platform.system():
-        hack = '/home/pi/.mozilla/firefox/m9f853mx.default'
+def process_args():
+    global domain,log
 
     domain = '<domain>'
     usage = sys.argv[0] + ' [-v(erbose)|-d(ebug)] ' + domain
@@ -158,6 +154,15 @@ if __name__ == '__main__':
     else:
         print(usage)
         exit(1)
+
+if __name__ == '__main__':
+
+    # FIXME: see readme.md
+    hack = ''
+    if 'Linux' == platform.system():
+        hack = '/home/pi/.mozilla/firefox/m9f853mx.default'
+
+    process_args()
 
     with ui(hack) as scan:
         """
