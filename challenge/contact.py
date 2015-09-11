@@ -32,10 +32,6 @@ class ui:
     def __exit__(self,t,v,s):
         self.web.quit()
 
-scheduled = set() # deque? avoid duplicate scheduling
-done = set() # web pages already examined
-emails = set() # email addresses found
-
 def normalized(link):
     url = urlparse(link)
     urlparts = list(url)
@@ -51,7 +47,9 @@ def normalized(link):
     return urlunparse(urlparts)
 
 def test_domain(domain,desired):
-    return bool(not(desired) or re.search('[\.]'+desired+'$',domain))
+    ret =  bool(domain==desired or not(desired) or re.search('[\.]'+desired+'$',domain))
+    log.debug('test domain {} in {} is {}'.format(domain,desired,str(ret)))
+    return ret
 
 class Links:
     """ iterator for links on a web page """
@@ -101,7 +99,8 @@ def headers(page):
     ret = {'Content-Type':None,'ETag':None}
     try:
         with urllib.request.urlopen(page) as response:
-             ret = response.info()
+            for k in ret:
+                ret[k] = response.info().get(k)
     except:
         pass # ignore any errors, in particular 404
     return ret
@@ -121,6 +120,7 @@ def isdigit(c):
 
 def smoke_test():
             assert(test_domain('blog.jana.com','jana.com'))
+            assert(not(test_domain('www.jana.com','blog.jana.com')))
             assert(not(test_domain('foo.com','foo.company.net')))
             contacts = Links(ui(hack),'http://jana.com/contact','jana.com')
             log.debug(str(contacts))
@@ -133,7 +133,6 @@ def get_links(page):
     ret=set()
 
 def process_args():
-    global domain,log
 
     domain = '<domain>'
     usage = sys.argv[0] + ' [-v(erbose)|-d(ebug)] ' + domain
@@ -154,6 +153,30 @@ def process_args():
     else:
         print(usage)
         exit(1)
+    return domain
+
+def process(page,scheduled,done,emails):
+    if page:
+        done.add(page)
+        log.info('page={}'.format(page))
+        header = headers(page)
+        etag = header['ETag']
+        if is_html(header['Content-Type']) and etag not in done:
+            if etag:
+                done.add(header['ETag'])
+
+            links = Links(scan,page,domain)
+            for email in links.mail:
+                emails.add(email)
+                print(email)
+
+            log.debug('links found={}'.format(links.found))
+            diff = links.found  - done
+            log.debug('diff={}'.format(diff))
+            scheduled |= diff
+            log.debug('done={}'.format(done))
+
+    return scheduled,done,emails
 
 if __name__ == '__main__':
 
@@ -162,36 +185,22 @@ if __name__ == '__main__':
     if 'Linux' == platform.system():
         hack = '/home/pi/.mozilla/firefox/m9f853mx.default'
 
-    process_args()
+    domain = process_args()
+    scheduled = set() # deque? avoid duplicate scheduling
+    done = set() # web pages already examined
+    emails = set() # email addresses found
 
     with ui(hack) as scan:
         """
         #pdb.set_trace()
         """
-        page = normalized('http://www.'+domain)
+        page = normalized('http://'+domain)
         scheduled.add(page)
         while(scheduled):
             page = scheduled.pop()
-            if page not in done:
-                done.add(page)
-                log.info('page={}'.format(page))
-                header = headers(page)
-                etag = header['ETag']
-                if is_html(header['Content-Type']) and etag not in done:
-                        if etag:
-                            done.add(header['ETag'])
-    
-                        links = Links(scan,page,domain)
-                        for email in links.mail:
-                            emails.add(email)
-                            print(email)
+            state = scheduled,done,emails
+            scheduled,done,emails = process(page,*state)
 
-                        log.debug('links found={}'.format(links.found))
-                        diff = links.found  - done
-                        log.debug('diff={}'.format(diff))
-                        scheduled |= diff
-                        log.debug('done={}'.format(done))
-
-        #log.info('scheduled={}'.format(scheduled))
+        log.info('scheduled={}'.format(scheduled))
         #log.info('done={}'.format(done))
         log.info('{} emails={} found in {} pages of {}'.format(len(emails),emails,len([p for p in done if not(isdigit(p[0]))]),domain))
